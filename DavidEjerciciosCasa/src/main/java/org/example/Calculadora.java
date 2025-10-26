@@ -8,11 +8,11 @@ public class Calculadora {
 
         //Introduzco e inicializo las variables a usar en el programa.
 
-        int num1 = 0;
-        int num2 = 0;
+        double num1 = 0;
+        double num2 = 0;
         double respuesta;
         String operacion = "";
-        boolean err = true;
+        boolean err;
 
         //El codigo entero esta dentro de un do-while para controlar que la operacion introducida (+,-,x,/,R) sea correcta.
 
