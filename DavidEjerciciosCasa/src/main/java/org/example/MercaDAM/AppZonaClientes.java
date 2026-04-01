@@ -184,7 +184,7 @@ public class AppZonaClientes {
                     System.out.println("Opción no válida. Inténtelo de nuevo.");
                     break;
             }
-        }while(opcion <= 0 || opcion > 3);
+        }while(opcion <= 0 || opcion >= 3);
 
     }
 }
