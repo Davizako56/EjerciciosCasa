@@ -1,0 +1,467 @@
+# MercaDAM Practica
+
+## Introducción
+
+El objetivo de esta práctica es el de recrear una aplicación para poder comprar en un mercado de forma completamente online usando los diferentes tipos de listas que hemos estado viendo en clase.
+
+## Código
+
+### AppZonaClientes:
+
+```
+package org.example.MercaDAM;
+import java.util.Map;
+import java.util.Scanner;
+import java.util.Set;
+
+/**
+ * Clase que funciona como una app para el mercado
+ * @author David Giner
+ */
+
+public class AppZonaClientes {
+    static Scanner entrada = new Scanner(System.in);
+
+    private static Cliente cliente;
+
+    public static void main(String[] args) {
+
+        Mercadam mercado = new Mercadam();
+        mercado.generarClientes();
+        autenticacion(mercado.getClientes());
+
+    }
+
+
+    /**
+     * Método para autenticarse en la aplicación.
+     * @param clientes Parámetro de tipo Set que aporta los clientes que hay registrados para poder inicar sesión correctamente.
+     */
+    public static void autenticacion(Set<Cliente> clientes) {
+
+        System.out.println("=== COMPRA ONLINE EN MERCADAM ===");
+
+        for(int i = 2; i >= 0; i--) {
+
+            System.out.println("Usuario:");
+            String usuario = entrada.next();
+            System.out.println("Contraseña:");
+            String contraseña = entrada.next();
+
+            for(Cliente c : clientes) {
+
+                if(c.getUsuario().equals(usuario) && c.getContraseña().equals(contraseña)) {
+                    System.out.println("Bienvenido, " + usuario);
+                    cliente = c;
+                    iniciarCompra();
+                }
+            }
+
+            System.out.println("Credenciales no válidas. Intentos: " + i);
+        }
+
+        System.out.println("ERROR DE AUTENTICACIÓN");
+
+
+    }
+
+    /**
+     * Método que crea el pedido al cliente.
+     */
+    public static void iniciarCompra() {
+
+        System.out.println("Creando nuevo pedido...");
+        cliente.crearPedido();
+        imprimirProductos();
+
+    }
+
+    /**
+     * Método para imprimir la lista de productos y empezar a añadirlos al carrito.
+     */
+    public static void imprimirProductos() {
+
+        Producto[] productos = Producto.values();
+        String producto;
+        char opcion = 'N';
+        boolean existe;
+
+        do {
+
+            existe = false;
+            System.out.println("Elige un producto de la lista...");
+
+            for (Producto pr : productos) {
+                System.out.println(pr.name() + ": " + pr.getPrecio() + "€");
+            }
+
+            System.out.println("================================");
+            System.out.println("Elige un producto:");
+            producto = entrada.next();
+
+            for(Producto p : productos) {
+
+                if(p.name().equalsIgnoreCase(producto)) {
+                    System.out.println("Has añadido " + p.name() + " con un precio de " + p.getPrecio() + "€");
+                    existe = true;
+                    cliente.insertarProducto(p);
+                    System.out.println("Importe total del pedido: " + cliente.getPedido().getImporteTotal() + "€");
+                    System.out.println("¿Quieres añadir más productos?");
+                    opcion = entrada.next().toUpperCase().charAt(0);
+
+                    if(opcion == 'N') {
+                        imprimirResumen();
+                        return;
+                    }
+                }
+            }
+
+            if(!existe) {
+                System.out.println("Producto no reconocido. Elige otro...");
+            }
+
+        }while(opcion == 'S' || !existe);
+
+    }
+
+    /**
+     * Método que imprime el resumen de la compra.
+     */
+    public static void imprimirResumen() {
+
+        System.out.println("=== RESUMEN DE TU CARRITO DE LA COMPRA ===");
+        System.out.println("Productos:");
+
+        for(Map.Entry<Producto, Integer> mapita : cliente.getPedido().getPedido().entrySet()) {
+
+            System.out.println(mapita.getValue() + " " + mapita.getKey().name() + ": " + (mapita.getKey().getPrecio() * mapita.getValue()));
+        }
+        System.out.println();
+
+        System.out.println("IMPORTE TOTAL: " + cliente.getPedido().getImporteTotal());
+        System.out.println();
+        System.out.println("===========================================");
+        mostrarOpciones();
+
+
+    }
+
+    /**
+     * Método que imprime la despedida del programa.
+     */
+    public static void imprimirDespedida() {
+
+        System.out.println("=== GRACIAS POR SU PEDIDO ===");
+        System.out.println("Lo recibirá en unos días en la dirección " + cliente.getDireccion());
+
+    }
+
+    /**
+     * Método que muestra todas las opciones que tiene el cliente despues de realizar el pedido.
+     */
+    public static void mostrarOpciones() {
+
+        int opcion = 0;
+
+        do{
+            System.out.println("Que desea hacer?");
+            System.out.println("[1]. Aplicar promos.");
+            System.out.println("[2]. Mostrar resumen ordenado por uds.");
+            System.out.println("[3]. Terminar pedido");
+            opcion = entrada.nextInt();
+
+            switch(opcion) {
+
+                case 1:
+
+                    if(cliente.isPromocion()) {
+                        System.out.println("No se pueden aplicar promociones porque el cliente ya tiene una aplicada");
+                    }else{
+                        cliente.setPromocion(true);
+                        cliente.getPedido().aplicarPromo3x2();
+                        cliente.getPedido().aplicarPromo10();
+                        imprimirResumen();
+                    }
+                    break;
+
+                case 2:
+                    break;
+
+                case 3:
+                    imprimirDespedida();
+                    break;
+
+                default:
+                    System.out.println("Opción no válida. Inténtelo de nuevo.");
+                    break;
+            }
+        }while(opcion <= 0 || opcion > 3);
+
+    }
+}
+```
+
+### Cliente
+
+```
+package org.example.MercaDAM;
+
+import java.util.HashMap;
+import java.util.Map;
+
+/**
+ * Clase que define los métodos de la clase cliente y como esta se va a comportar.
+ * @author David Giner
+ */
+
+public class Cliente {
+
+    private String usuario;
+    private String contraseña;
+    private String direccion;
+    private Pedido pedido;
+    private boolean promocion;
+
+    public Cliente(String usuario, String contraseña) {
+
+        this.usuario = usuario;
+        this.contraseña = contraseña;
+        direccion = "Calle falsa, 123";
+        pedido = null;
+        promocion = false;
+    }
+
+    public String getUsuario() {
+        return usuario;
+    }
+
+    public void setUsuario(String usuario) {
+        this.usuario = usuario;
+    }
+
+    public String getContraseña() {
+        return contraseña;
+    }
+
+    public void setContraseña(String contraseña) {
+        this.contraseña = contraseña;
+    }
+
+    public String getDireccion() {
+        return direccion;
+    }
+
+    public void setDireccion(String direccion) {
+        this.direccion = direccion;
+    }
+
+    public Pedido getPedido() {
+        return pedido;
+    }
+
+    public void setPedido(Pedido pedido) {
+        this.pedido = pedido;
+    }
+
+    public boolean isPromocion() {
+        return promocion;
+    }
+
+    public void setPromocion(boolean promocion) {
+        this.promocion = promocion;
+    }
+
+    /**
+     * Método que crea un pedido para el cliente en concreto.
+     */
+    public void crearPedido() {
+
+        pedido = new Pedido();
+
+    }
+
+    /**
+     * Método para insertar prodcutos en el pedido del cliente.
+     * @param producto Parámetro que indica el prodcuto que va a ser añadido al pedido.
+     */
+    public void insertarProducto(Producto producto) {
+
+        HashMap<Producto, Integer> lista = new HashMap<>();
+
+        for(Map.Entry<Producto, Integer> mapita : pedido.getPedido().entrySet()) {
+
+            if(mapita.getKey() == producto) {
+                lista.put(producto, mapita.setValue(mapita.getValue() + 1));
+                pedido.setPedido(lista);
+                pedido.actualizarImporteTotal(producto.getPrecio());
+            }else{
+                lista.put(producto, 1);
+                pedido.setPedido(lista);
+                pedido.actualizarImporteTotal(producto.getPrecio());
+            }
+        }
+    }
+
+    @Override
+
+    public String toString() {
+
+        return "[Usuario = " + usuario + ", contraseña = " + contraseña + ", dirección = " + direccion + ", pedido = " + pedido + ", promoción = " + promocion + "]";
+    }
+}
+```
+
+### Mercadam
+
+```
+package org.example.MercaDAM;
+import java.util.HashSet;
+import java.util.Random;
+import java.util.Set;
+
+/**
+ * Clase que sirve para la generación automática de clientes para hacer pruebas en la app.
+ * @author David Giner
+ */
+
+public class Mercadam {
+    static Random random = new Random();
+
+    private Set<Cliente> clientes;
+    private final String caracteres = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+
+    public Mercadam() {
+
+        clientes = new HashSet<>();
+        generarClientes();
+
+    }
+
+    /**
+     * Método para generar los clientes que se usarán en la autenticación de la app.
+     */
+    public void generarClientes() {
+
+        StringBuilder nombre = new StringBuilder();
+        StringBuilder contraseña = new StringBuilder();
+
+        for(int i = 0; i < 8; i++) {
+
+            int num = random.nextInt(62);
+            String letra = caracteres.substring(num, num + 1);
+            nombre.append(letra);
+        }
+
+        for(int i = 0; i < 8; i++) {
+
+            int num = random.nextInt(62);
+            String letra = caracteres.substring(num, num + 1);
+            contraseña.append(letra);
+        }
+
+        clientes.add(new Cliente(nombre.toString(), contraseña.toString()));
+
+    }
+
+    public Set<Cliente> getClientes() {
+        return clientes;
+    }
+}
+```
+
+### Pedido
+
+```
+package org.example.MercaDAM;
+import java.util.HashMap;
+
+/**
+ * Clase que contiene los métodos de Pedido y que define como esta se va a comportar
+ * @author David Giner
+ */
+
+public class Pedido {
+
+    private HashMap<Producto, Integer> pedido;
+    private double importeTotal;
+
+    public Pedido() {
+
+        pedido  = new HashMap<>();
+        importeTotal = 0;
+    }
+
+    public HashMap<Producto, Integer> getPedido() {
+        return pedido;
+    }
+
+    public void setPedido(HashMap<Producto, Integer> pedido) {
+        this.pedido = pedido;
+    }
+
+    public double getImporteTotal() {
+        return importeTotal;
+    }
+
+    public void setImporteTotal(double importeTotal) {
+
+        this.importeTotal = importeTotal;
+    }
+
+    /**
+     * Método para actualizar el importe total conforme se van añadiendo productos al pedido.
+     * @param importe Parámetro que indica el importe a sumarle al total del pedido.
+     */
+    public void actualizarImporteTotal(double importe) {
+
+        importeTotal += importe;
+    }
+
+    public void aplicarPromo3x2() {
+
+    }
+
+    /**
+     * Método que rebaja el importe total del pedido a un 10%.
+     */
+    public void aplicarPromo10() {
+
+        importeTotal = importeTotal - (importeTotal * 0.1);
+        setImporteTotal(importeTotal);
+    }
+
+    @Override
+
+    public String toString() {
+
+        return "[Pedido = " + pedido + ", importe total = " + importeTotal + "]";
+    }
+}
+```
+
+### Producto
+
+```
+package org.example.MercaDAM;
+
+/**
+ * Enum con todos los productos disponibles y sus precios individuales.
+ * @author David Giner
+ */
+
+public enum Producto {
+
+    MANZANAS(2.30), PAN(1), ARROZ(3.50), POLLO(4.30), LECHE(1.30), ACEITE(8.30), HUEVOS(3.30), TOMATES(4), PASTA(0.89);
+
+    private final double precio;
+
+    Producto(double precio) {
+
+        this.precio = precio;
+    }
+
+    public double getPrecio() {
+        return precio;
+    }
+}
+```
